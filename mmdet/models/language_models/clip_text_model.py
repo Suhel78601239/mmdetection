@@ -125,44 +125,29 @@ import torch
 from mmengine.model import BaseModel
 from torch import nn
 
-try:
-    import open_clip
-except ImportError:
-    open_clip = None
+from transformers import CLIPTokenizer, CLIPModel
 
 from mmdet.registry import MODELS
 
 
-class HuggingfaceStyleOpenCLIPTokenizer:
-    """A wrapper to make OpenCLIP tokenizer compatible with HuggingFace-style API."""
-    def __init__(self, tokenizer, context_length=77):
-        self.tokenizer = tokenizer
-        self.context_length = context_length
-
-    def __call__(self, texts, padding=True, truncation=True, max_length=None, return_tensors=None, **kwargs):
-        # Ignore padding/truncation args and always use context_length
-        tokenized = self.tokenizer(texts, context_length=self.context_length)
-        return tokenized
-
-
 @MODELS.register_module()
 class CLIPTextModel(BaseModel):
-    """CLIP model for language embedding using OpenCLIP.
+    """CLIP model for language embedding using HuggingFace CLIP.
 
     Args:
-        name (str): CLIP model name.
-        pretrained (str): Pretrained weights name, e.g. 'openai'.
-        max_tokens (int): Max token length (CLIP uses 77).
+        name (str): Model name.
+        pretrained (str): Pretrained checkpoint name or path.
+        max_tokens (int): Max token length.
         use_sub_sentence_represent (bool): Enable sub-sentence representation.
-        special_tokens_list (list): List of special tokens for sentence splits.
-        num_layers_of_embedded (int): How many hidden layers to average.
-        pad_to_max (bool): Whether to pad input to max length.
-        add_pooling_layer (bool): Whether to use pooling (not used here).
+        special_tokens_list (list): Special tokens for sub-sentence split.
+        num_layers_of_embedded (int): Number of hidden layers to average.
+        pad_to_max (bool): Pad input to max length.
+        add_pooling_layer (bool): Not used.
     """
 
     def __init__(self,
-                 name: str = 'ViT-B-32-quickgelu',
-                 pretrained: str = 'openai',
+                 name: str = 'openai/clip-vit-base-patch32',
+                 pretrained: str = 'openai/clip-vit-base-patch32',
                  max_tokens: int = 77,
                  use_sub_sentence_represent: bool = False,
                  special_tokens_list: list = None,
@@ -171,6 +156,7 @@ class CLIPTextModel(BaseModel):
                  add_pooling_layer: bool = False,
                  **kwargs):
 
+        # Remove extra arguments before passing to BaseModel
         kwargs.pop('pad_to_max', None)
         kwargs.pop('use_sub_sentence_represent', None)
         kwargs.pop('special_tokens_list', None)
@@ -178,30 +164,21 @@ class CLIPTextModel(BaseModel):
 
         super().__init__(**kwargs)
 
-        if open_clip is None:
-            raise ImportError('open_clip not found. Install it with: pip install open_clip_torch')
-
         self.max_tokens = max_tokens
         self.use_sub_sentence_represent = use_sub_sentence_represent
         self.pad_to_max = pad_to_max
         self.add_pooling_layer = add_pooling_layer
         self.num_layers_of_embedded = num_layers_of_embedded
 
-        # Load CLIP model and tokenizer
-        self.model, _, _ = open_clip.create_model_and_transforms(
-            model_name=name, pretrained=pretrained)
-
-        # Wrap tokenizer to make it compatible with MMDet's expectations
-        self.tokenizer = HuggingfaceStyleOpenCLIPTokenizer(
-            open_clip.get_tokenizer(name),
-            context_length=self.model.context_length
-        )
+        # Load HuggingFace CLIP
+        self.tokenizer = CLIPTokenizer.from_pretrained(name)
+        self.model = CLIPModel.from_pretrained(pretrained)
 
         self.set_requires_grad(False)
 
-        self.language_dim = self.model.text_projection.shape[1]
+        self.language_dim = self.model.text_model.config.hidden_size
 
-        # Compatibility with MMDet
+        # MMDet compatibility
         self.language_backbone = SimpleNamespace(
             body=SimpleNamespace(language_dim=self.language_dim)
         )
@@ -210,36 +187,43 @@ class CLIPTextModel(BaseModel):
             assert special_tokens_list is not None, \
                 'special_tokens_list must be set if use_sub_sentence_represent is True'
             self.special_tokens = self.tokenizer(
-                special_tokens_list)
+                special_tokens_list, padding='max_length',
+                max_length=self.max_tokens,
+                truncation=True,
+                return_tensors="pt"
+            )
 
     def forward(self, captions: Sequence[str], **kwargs) -> dict:
-        """Forward pass to compute CLIP text embeddings."""
+        """Forward pass to compute text embeddings."""
         device = next(self.model.parameters()).device
 
         tokenized = self.tokenizer(
-            captions
+            captions,
+            padding='max_length' if self.pad_to_max else True,
+            truncation=True,
+            max_length=self.max_tokens,
+            return_tensors="pt",
+            return_offsets_mapping=True,
+            return_token_type_ids=True,
+            return_attention_mask=True
         ).to(device)
 
-        outputs = self.model.encode_text(tokenized)  # [B, D]
+        outputs = self.model.get_text_features(**tokenized)  # [B, D]
 
         results = {
             'embedded': outputs,                # [B, D]
-            'masks': torch.ones_like(outputs),  # Dummy mask
-            'hidden': outputs.unsqueeze(1)      # [B, 1, D]
+            'masks': torch.ones_like(outputs),  # dummy masks
+            'hidden': outputs.unsqueeze(1),     # [B, 1, D]
+            'tokenized': tokenized              # include tokenizer output for char_to_token()
         }
 
         if self.use_sub_sentence_represent:
-            results['text_token_mask'] = torch.ones_like(tokenized, dtype=torch.bool)
+            results['text_token_mask'] = tokenized.attention_mask.bool()
 
         return results
 
     def set_requires_grad(self, requires_grad: bool = True, freeze_projection: bool = False):
-        """Enable or disable gradients for CLIP text encoder.
-
-        Args:
-            requires_grad (bool): Enable gradients for the model.
-            freeze_projection (bool): Keep the text_projection layer frozen.
-        """
+        """Enable or disable gradients for the CLIP text encoder."""
         for name, param in self.model.named_parameters():
             if freeze_projection and 'text_projection' in name:
                 param.requires_grad = False
