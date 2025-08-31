@@ -36,9 +36,9 @@ class MDETRStyleRefCocoDataset(BaseDetDataset):
             data_info['img_id'] = img_id
             data_info['height'] = raw_img_info['height']
             data_info['width'] = raw_img_info['width']
-            data_info['dataset_mode'] = raw_img_info['dataset_name']
+            # data_info['dataset_mode'] = raw_img_info['dataset_name']
 
-            data_info['text'] = raw_img_info['caption']
+            data_info['text'] = raw_img_info['sentences']
             data_info['custom_entities'] = False
             data_info['tokens_positive'] = -1
 
