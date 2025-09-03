@@ -169,6 +169,6 @@ class RefCocoDataset(BaseDataset):
             data_list.append(data_info)
 
         if len(data_list) == 0:
-            raise ValueError(f'No sample in split "{self.split}".')
+            raise ValueError(f'No sample in split"')
 
         return data_list
