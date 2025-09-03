@@ -36,10 +36,10 @@ class RefCocoDataset(BaseDataset):
     def __init__(self,
                  data_root: str,
                  ann_file: str,
-                 split_file: str = None,
                  data_prefix: Dict,
                  split: str = 'train',
                  text_mode: str = 'random',
+                 split_file: str = None,
                  **kwargs):
         # self.split_file = split_file
         # ✅ if no split_file provided, just skip
