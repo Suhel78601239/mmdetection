@@ -36,12 +36,12 @@ class RefCocoDataset(BaseDataset):
     def __init__(self,
                  data_root: str,
                  ann_file: str,
-                 # split_file: str,
+                 split_file: None,
                  data_prefix: Dict,
                  split: str = 'train',
                  text_mode: str = 'random',
                  **kwargs):
-        # self.split_file = split_file
+        self.split_file = split_file
         self.split = split
 
         assert text_mode in ['original', 'random', 'concat', 'select_first']
