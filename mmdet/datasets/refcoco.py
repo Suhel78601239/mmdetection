@@ -321,6 +321,10 @@ class RefCocoDataset(BaseDataset):
                 else:
                     raise ValueError(f'Invalid text mode "{self.text_mode}".')
                 ins = [{
+                    ##############################
+                    'bbox': grounding_anno['bbox'],              # <-- add bbox
+                    'bbox_label': grounding_anno['category_id'], # <-- add label
+                    #########################
                     'mask': grounding_anno.get('segmentation', None),
                     'ignore_flag': 0
                 }] * len(text)
@@ -329,8 +333,10 @@ class RefCocoDataset(BaseDataset):
             data_info = {
                 'img_path': join_path(img_prefix, image['file_name']),
                 'img_id': img_id,
+                #############################
                 'width': image['width'],
                 'height': image['height'],
+                #############################
                 'instances': instances,
                 'text': sentences
             }
