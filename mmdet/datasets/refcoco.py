@@ -27,7 +27,7 @@ class RefCocoDataset(BaseDataset):
         data_root (str): The root directory for ``data_prefix`` and
             ``ann_file``. Defaults to ''.
         data_prefix (str): Prefix for training data.
-        split_file (str): Split file path.
+        split (str): Split file path.
         split (str): Split name. Defaults to 'train'.
         text_mode (str): Text mode. Defaults to 'random'.
         **kwargs: Other keyword arguments in :class:`BaseDataset`.
@@ -36,12 +36,12 @@ class RefCocoDataset(BaseDataset):
     def __init__(self,
                  data_root: str,
                  ann_file: str,
-                 split_file: str,
+                 split: str,
                  data_prefix: Dict,
                  split: str = 'train',
                  text_mode: str = 'random',
                  **kwargs):
-        self.split_file = split_file
+        self.split = split
         self.split = split
 
         assert text_mode in ['original', 'random', 'concat', 'select_first']
@@ -54,8 +54,8 @@ class RefCocoDataset(BaseDataset):
         )
 
     def _join_prefix(self):
-        if not mmengine.is_abs(self.split_file) and self.split_file:
-            self.split_file = osp.join(self.data_root, self.split_file)
+        if not mmengine.is_abs(self.split) and self.split:
+            self.split = osp.join(self.data_root, self.split)
 
         return super()._join_prefix()
 
@@ -81,7 +81,7 @@ class RefCocoDataset(BaseDataset):
 
     def load_data_list(self) -> List[dict]:
         """Load data list."""
-        self.splits = mmengine.load(self.split_file, file_format='pkl')
+        self.splits = mmengine.load(self.split, file_format='pkl')
         self.instances = mmengine.load(self.ann_file, file_format='json')
         self._init_refs()
         img_prefix = self.data_prefix['img_path']
