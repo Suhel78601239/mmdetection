@@ -41,7 +41,14 @@ class RefCocoDataset(BaseDataset):
                  split: str = 'train',
                  text_mode: str = 'random',
                  **kwargs):
-        self.split_file = split_file
+        # self.split_file = split_file
+        # ✅ if no split_file provided, just skip
+        if split_file is None:
+            self.splits = None
+        else:
+            with open(split_file, 'r') as f:
+                self.splits = json.load(f)
+                
         self.split = split
 
         assert text_mode in ['original', 'random', 'concat', 'select_first']
