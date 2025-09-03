@@ -48,7 +48,7 @@ class RefCocoDataset(BaseDataset):
         else:
             with open(split_file, 'r') as f:
                 self.splits = json.load(f)
-                
+        ###############################
         self.split = split
 
         assert text_mode in ['original', 'random', 'concat', 'select_first']
@@ -73,7 +73,11 @@ class RefCocoDataset(BaseDataset):
             anns[ann['id']] = ann
         for img in self.instances['images']:
             imgs[img['id']] = img
-
+        ######################
+        if not hasattr(self, "splits") or self.splits is None:
+            self.splits = []
+            return
+        #####################
         refs, ref_to_ann = {}, {}
         for ref in self.splits:
             # ids
