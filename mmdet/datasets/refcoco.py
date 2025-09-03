@@ -261,7 +261,7 @@ class RefCocoDataset(BaseDataset):
         self.splits = mmengine.load(self.split_file, file_format='pkl')
         self.instances = mmengine.load(self.ann_file, file_format='json')
         self._init_refs()
-        img_prefix = self.data_prefix['img_path']
+        img_prefix = self.data_prefix['img']
 
         ref_ids = [
             ref['ref_id'] for ref in self.splits if ref['split'] == self.split
