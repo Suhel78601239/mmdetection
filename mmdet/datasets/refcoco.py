@@ -36,7 +36,7 @@ class RefCocoDataset(BaseDataset):
     def __init__(self,
                  data_root: str,
                  ann_file: str,
-                 split_file: None,
+                 split_file: str = None,
                  data_prefix: Dict,
                  split: str = 'train',
                  text_mode: str = 'random',
