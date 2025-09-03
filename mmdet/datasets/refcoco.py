@@ -329,6 +329,8 @@ class RefCocoDataset(BaseDataset):
             data_info = {
                 'img_path': join_path(img_prefix, image['file_name']),
                 'img_id': img_id,
+                'width': image['width'],
+                'height': image['height'],
                 'instances': instances,
                 'text': sentences
             }
