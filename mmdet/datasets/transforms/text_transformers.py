@@ -156,7 +156,20 @@ class RandomSamplingNegPos(BaseTransform):
             text = self.label_map
         else:
             text = results['text']
-
+            
+        # Fix starts here: normalize list-of-sentences into a dict
+        if isinstance(text, list):
+        # Case 1: list of dicts with "raw"
+            if len(text) > 0 and isinstance(text[0], dict) and "raw" in text[0]:
+                # join all raw sentences into one caption
+                joined = " ".join([t["raw"] for t in text])
+                text = {str(i): joined for i in range(len(gt_labels))}
+            else:
+                # list of plain strings
+                joined = " ".join([str(t) for t in text])
+                text = {str(i): joined for i in range(len(gt_labels))}
+        # Fix ends here
+        
         original_box_num = len(gt_labels)
         # If the category name is in the format of 'a/b' (in object365),
         # we randomly select one of them.
