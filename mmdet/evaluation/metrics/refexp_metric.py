@@ -67,11 +67,11 @@ class RefExpMetric(BaseMetric):
                 target_bbox[3] + target_bbox[1],
             ]
             #############
-            print("\n--- Debugging bbox formats ---")
-            print(f"Image ID: {img_id}")
-            print(f"Prediction sample: {result['bboxes'][0]}")
-            print(f"GT bbox (converted [x1,y1,x2,y2]): {converted_bbox}")
-            print("------------------------------\n")
+            # print("\n--- Debugging bbox formats ---")
+            # print(f"Image ID: {img_id}")
+            # print(f"Prediction sample: {result['bboxes'][0]}")
+            # print(f"GT bbox (converted [x1,y1,x2,y2]): {converted_bbox}")
+            # print("------------------------------\n")
             ###############
             
             iou = bbox_overlaps(result['bboxes'],
